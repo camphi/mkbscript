@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+show_help() {
+    cat <<EOL
+To create the base requirement for a script
+
+Usage: ${0##*/} {script-name} [script-name-2...]
+EOL
+}
+
+if (( $# == 0 )); then
+    show_help
+    exit 0
+fi
+
+for file in "$@"; do
+  [[ -e $file ]] && continue
+    cat > "$file" <<'EOX' 
+#!/usr/bin/env bash
+
+argument_list=()
+optional_list=()
+flag=0
+
+show_help() {
+    cat <<EOL
+Usage: ${0##*/} [options] [--] [command...]
+EOL
+}
+
+if (( $# == 0 )); then
+    show_help
+    exit 0
+fi
+
+while (( $# > 0 )); do
+    case "$1" in
+        -h|--help) show_help; exit 0 ;;
+        # Argument
+        -a=*|--argument=*) argument_list+=("${1#*=}"); shift ;;
+        -a?*) argument_list+=("${1#-?}"); shift ;;
+        -a|--argument) argument_list+=("$2"); shift 2 ;;
+        # Optional
+        -o=*|--optional=*) optional_list+=("${1#*=}"); shift ;;
+        -o|--optional) optional_list+=("default"); shift ;;
+        # Flag
+        -f|--flag) flag=1; shift ;;
+        --) shift; break ;;
+        # compounded options segmentation
+        -[!-]?*) opt="$1"; shift; set -- "${opt:0:2}" "-${opt:2}" "$@" ;;
+        *) break ;;
+    esac
+done
+
+# Argument list
+for arg in "${argument_list[@]}"; do
+    printf 'Argument: "%s"\n' "$arg"
+done
+
+# Optional list
+for opt in "${optional_list[@]}"; do
+    printf 'Optional: "%s"\n' "$opt"
+done
+
+# Flag
+if (( flag > 0 )); then
+    printf 'Flag: "%s"\n' "$flag"
+fi
+
+# caboose command
+if (( $# > 0 )); then
+    printf 'Caboose: "%s"\n' "$*"
+fi
+EOX
+  chmod +x "$file"
+done
