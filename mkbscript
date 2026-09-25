@@ -72,5 +72,5 @@ if (( $# > 0 )); then
     printf 'Caboose: "%s"\n' "$*"
 fi
 EOX
-  chmod +x "$file"
+  chmod +x -- "$file"
 done
